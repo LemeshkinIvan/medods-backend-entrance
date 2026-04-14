@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"time"
 
 	taskdomain "example.com/taskservice/internal/domain/task"
 )
@@ -12,6 +13,7 @@ type Repository interface {
 	Update(ctx context.Context, task *taskdomain.Task) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
 	List(ctx context.Context) ([]taskdomain.Task, error)
+	ListByDate(ctx context.Context, date time.Time) ([]taskdomain.Task, error)
 }
 
 type Usecase interface {
@@ -19,17 +21,30 @@ type Usecase interface {
 	GetByID(ctx context.Context, id int64) (*taskdomain.Task, error)
 	Update(ctx context.Context, id int64, input UpdateInput) (*taskdomain.Task, error)
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context) ([]taskdomain.Task, error)
+	List(ctx context.Context, date string) ([]taskdomain.Task, error)
 }
 
+// в сервис
 type CreateInput struct {
 	Title       string
 	Description string
 	Status      taskdomain.Status
+
+	ScheduledAt      string // или стринг. пока хз
+	Periodicity      int8   // дней 28-31. пока хз
+	TypeOfRepetition taskdomain.Repetition
+	CustomDates      []string
 }
 
 type UpdateInput struct {
 	Title       string
 	Description string
 	Status      taskdomain.Status
+
+	CreatedAt string
+
+	ScheduledAt      string // или стринг. пока хз
+	Periodicity      int8   // дней 28-31. пока хз
+	TypeOfRepetition taskdomain.Repetition
+	CustomDates      []string
 }
