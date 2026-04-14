@@ -55,12 +55,13 @@ GET /api/v1/tasks?date=DD.MM.YYYY
 Если date не передан — возвращаются все задачи без фильтрации по дате.
 
 ## Основные маршруты
+```
 POST /api/v1/tasks
 GET /api/v1/tasks
 GET /api/v1/tasks/{id}
 PUT /api/v1/tasks/{id}
 DELETE /api/v1/tasks/{id}
-
+```
 ## Подход к реализации
 
 При запросе списка задач:
