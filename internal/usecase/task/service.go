@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	taskdomain "example.com/taskservice/internal/domain/task"
@@ -26,31 +27,15 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*taskdomain.Ta
 		return nil, err
 	}
 
-	formatDate, err := parseDate(input.ScheduledAt)
-	if err != nil {
-		return nil, err
-	}
-
-	now := s.now()
-	createdAt := now
-	updatedAt := now
-
-	if err := validateCustomDates(normalized.CustomDates, createdAt, formatDate); err != nil {
-		return nil, err
-	}
-
 	model := &taskdomain.Task{
-		Title:            normalized.Title,
-		Description:      normalized.Description,
-		Status:           normalized.Status,
-		Periodicity:      input.Periodicity,
-		TypeOfRepetition: input.TypeOfRepetition,
-		ScheduledAt:      formatDate,
-		CustomDates:      normalized.CustomDates,
+		Title:       normalized.Title,
+		Description: normalized.Description,
+		Status:      normalized.Status,
 	}
+	now := s.now()
+	model.CreatedAt = now
+	model.UpdatedAt = now
 
-	model.CreatedAt = createdAt
-	model.UpdatedAt = updatedAt
 	created, err := s.repo.Create(ctx, model)
 	if err != nil {
 		return nil, err
@@ -77,32 +62,12 @@ func (s *Service) Update(ctx context.Context, id int64, input UpdateInput) (*tas
 		return nil, err
 	}
 
-	formatDate, err := parseDate(input.ScheduledAt)
-	if err != nil {
-		return nil, err
-	}
-
-	createdAt, err := parseDate(normalized.CreatedAt)
-	if err != nil {
-		return nil, err
-	}
-
-	now := s.now()
-
-	if err := validateCustomDates(normalized.CustomDates, createdAt, formatDate); err != nil {
-		return nil, err
-	}
-
 	model := &taskdomain.Task{
-		ID:               id,
-		Title:            normalized.Title,
-		Description:      normalized.Description,
-		Status:           normalized.Status,
-		Periodicity:      input.Periodicity,
-		TypeOfRepetition: input.TypeOfRepetition,
-		ScheduledAt:      formatDate,
-		UpdatedAt:        now,
-		CustomDates:      normalized.CustomDates,
+		ID:          id,
+		Title:       normalized.Title,
+		Description: normalized.Description,
+		Status:      normalized.Status,
+		UpdatedAt:   s.now(),
 	}
 
 	updated, err := s.repo.Update(ctx, model)
@@ -121,28 +86,40 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	return s.repo.Delete(ctx, id)
 }
 
-func (s *Service) List(ctx context.Context, date string) ([]taskdomain.Task, error) {
-	formatDate, err := parseParamDate(date)
-	if err != nil {
-		return nil, err
-	}
-
-	// если параметр не пустой, то отдаем активные задачи
-	if !formatDate.IsZero() {
-		tasks, err := s.repo.ListByDate(ctx, formatDate)
-		if err != nil {
-			return nil, err
-		}
-
-		filtered := []taskdomain.Task{}
-		for _, task := range tasks {
-			if isActive(task, formatDate) {
-				filtered = append(filtered, task)
-			}
-		}
-
-		return filtered, nil
-	}
-
+func (s *Service) List(ctx context.Context) ([]taskdomain.Task, error) {
 	return s.repo.List(ctx)
+}
+
+func validateCreateInput(input CreateInput) (CreateInput, error) {
+	input.Title = strings.TrimSpace(input.Title)
+	input.Description = strings.TrimSpace(input.Description)
+
+	if input.Title == "" {
+		return CreateInput{}, fmt.Errorf("%w: title is required", ErrInvalidInput)
+	}
+
+	if input.Status == "" {
+		input.Status = taskdomain.StatusNew
+	}
+
+	if !input.Status.Valid() {
+		return CreateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
+	}
+
+	return input, nil
+}
+
+func validateUpdateInput(input UpdateInput) (UpdateInput, error) {
+	input.Title = strings.TrimSpace(input.Title)
+	input.Description = strings.TrimSpace(input.Description)
+
+	if input.Title == "" {
+		return UpdateInput{}, fmt.Errorf("%w: title is required", ErrInvalidInput)
+	}
+
+	if !input.Status.Valid() {
+		return UpdateInput{}, fmt.Errorf("%w: invalid status", ErrInvalidInput)
+	}
+
+	return input, nil
 }

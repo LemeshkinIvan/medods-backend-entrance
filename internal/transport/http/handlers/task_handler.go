@@ -28,13 +28,9 @@ func (h *TaskHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	created, err := h.usecase.Create(r.Context(), taskusecase.CreateInput{
-		Title:            req.Title,
-		Description:      req.Description,
-		Status:           req.Status,
-		Periodicity:      req.Periodicity,
-		TypeOfRepetition: req.TypeOfRepetition,
-		ScheduledAt:      req.ScheduledAt,
-		CustomDates:      req.CustomDates,
+		Title:       req.Title,
+		Description: req.Description,
+		Status:      req.Status,
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
@@ -67,21 +63,16 @@ func (h *TaskHandler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req taskUpdateMutationDTO
+	var req taskMutationDTO
 	if err := decodeJSON(r, &req); err != nil {
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
 
 	updated, err := h.usecase.Update(r.Context(), id, taskusecase.UpdateInput{
-		Title:            req.Title,
-		Description:      req.Description,
-		Status:           req.Status,
-		Periodicity:      req.Periodicity,
-		TypeOfRepetition: req.TypeOfRepetition,
-		ScheduledAt:      req.ScheduledAt,
-		CustomDates:      req.CustomDates,
-		CreatedAt:        req.CreatedAt,
+		Title:       req.Title,
+		Description: req.Description,
+		Status:      req.Status,
 	})
 	if err != nil {
 		writeUsecaseError(w, err)
@@ -107,10 +98,7 @@ func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *TaskHandler) List(w http.ResponseWriter, r *http.Request) {
-	queryPool := r.URL.Query()
-	dateQuery := queryPool.Get("date")
-
-	tasks, err := h.usecase.List(r.Context(), dateQuery)
+	tasks, err := h.usecase.List(r.Context())
 	if err != nil {
 		writeUsecaseError(w, err)
 		return
